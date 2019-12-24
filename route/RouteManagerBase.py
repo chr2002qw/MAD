@@ -305,10 +305,7 @@ class RouteManagerBase(ABC):
         return new_route
 
     def recalc_route_adhoc(self, max_radius: float, max_coords_within_radius: int, num_procs: int = 1,
-                           active: bool = False):
-        self._clear_coords()
-        coords = self._get_coords_post_init()
-        self.add_coords_list(coords)
+        active: bool = False):
         new_route = self.recalc_route(max_radius, max_coords_within_radius, num_procs, in_memory=True)
         calc_coords = []
         for coord in new_route:
