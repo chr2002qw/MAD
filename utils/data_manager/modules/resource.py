@@ -330,9 +330,10 @@ class Resource(object):
             except TypeError:
                 continue
 
-    def presave_validation(self, ignore_issues=[], issues={}):
+    def presave_validation(self, ignore_issues=[]):
         # Validate required data has been set
         top_levels = ['fields', 'settings']
+        issues = {}
         for top_level in top_levels:
             try:
                 for key, val in self._data[top_level].issues.items():
@@ -345,6 +346,15 @@ class Resource(object):
                     issues[key] += val
             except KeyError:
                 continue
+        custom_issues = self.validate_custom()
+        if custom_issues:
+            for key, set_issues in custom_issues.items():
+                if key not in issues:
+                    issues[key] = set_issues
+                elif type(set_issues) is list:
+                    issues[key] += set_issues
+                elif type(set_issues) is dict:
+                    issues[key].update(set_issues)
         if issues:
             raise dm_exceptions.UpdateIssue(**issues)
 
@@ -387,14 +397,15 @@ class Resource(object):
         return self.identifier
 
     @classmethod
-    def search(cls, dbc, res_obj, *args, **kwargs):
+    def search(cls, dbc, res_obj, instance_id, *args, **kwargs):
 
         sql = "SELECT `%s`\n"\
-              "FROM `%s`"
+              "FROM `%s`\n"\
+              "WHERE `instance_id` = %%s"
         args = (res_obj.primary_key, res_obj.table,)
         if res_obj.search_field is not None:
             sql += "\nORDER BY `%s` ASC" % (res_obj.search_field)
-        return dbc.autofetch_column(sql % args)
+        return dbc.autofetch_column(sql % args, args=(instance_id))
 
     def translate_keys(self, data, operation, translations=None):
         if translations is None:
@@ -411,5 +422,5 @@ class Resource(object):
             translated[translations[key]] = val
         return translated
 
-    def validate_data(self):
+    def validate_custom(self):
         pass
